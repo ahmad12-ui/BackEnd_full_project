@@ -24,4 +24,9 @@ app.use(express.static("public")); // this store file like pdf on our server in 
 
 app.use(cookieParser()); // cookie is small piece of data that store on browser and cookie parser read it and parse into json format
 
+//router import
+import userRouter from "./routes/users.routes.js";
+
+app.use("/api/v1/users", userRouter);
+
 export default app;

@@ -9,7 +9,7 @@
 //   }
 // };
 const asyncHandler = (functionHandler) => {
-  (req, res, next) => {
+  return (req, res, next) => {
     // check if any error is occured regarding to async handler
     Promise.resolve(functionHandler(req, res, next)).catch((err) => {
       next(err);
