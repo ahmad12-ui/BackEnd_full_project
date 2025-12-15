@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt ";
+import bcrypt from "bcrypt";
 
 const userSchema = Schema(
   {
@@ -45,17 +45,17 @@ const userSchema = Schema(
 );
 
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password")) return next(); // this refer to current document
   // without if condition there is issue in this statment which is that it encrypt everytime when change made in user model but we want on just password related
-  this.password = bcrypt.hash(this.password, 10);
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 //we not use the arrow function here because it dont have this keyword means it is unknown to context && we make the function async because it take time to encrypt it
 
 userSchema.methods.ispassword = async function (password) {
-  return await bcrypt.campare(password, this.password);
+  // methods add function to schema "custom method"
+  return await bcrypt.compare(password, this.password); // returm boolean
 };
-
 userSchema.methods.generateAccessToken = async function () {
   return jwt.sign(
     {
