@@ -9,8 +9,6 @@ const registerUser = asyncHandler(async (req, res) => {
   // });
 
   const { fullName, email, password, userName } = req.body;
-  console.log(email);
-  console.log(req.body);
 
   // if (fullName || email || password || userName === "") {
   //   console.log("must be here ");
@@ -20,7 +18,7 @@ const registerUser = asyncHandler(async (req, res) => {
   ) {
     throw new apiError(400, "all field are compulsory");
   }
-  const existedUSer = User.findOne({
+  const existedUSer = await User.findOne({
     $or: [{ email }, { userName }],
   });
 
@@ -28,8 +26,18 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new apiError(409, "user already exist");
   }
 
-  const avatarLocalPath = req.files?.avatar?.path;
-  const coverImageLocalPath = req.files?.coverImage?.path;
+  //the [0] with avatar is must
+  const avatarLocalPath = req.files?.avatar[0]?.path;
+  // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+  let coverImageLocalPath;
+  if (
+    req.files &&
+    Array.isArray(req.files.coverImage) &&
+    req.files.coverImage.length > 0
+  ) {
+    coverImageLocalPath = req.files.coverImage[0].path;
+  }
 
   if (!avatarLocalPath) {
     throw new apiError(400, "avatar must required");
@@ -38,28 +46,29 @@ const registerUser = asyncHandler(async (req, res) => {
   const avatarCloudPath = await uploadFileOnCloudinary(avatarLocalPath);
   const coverImageCloudPath = await uploadFileOnCloudinary(coverImageLocalPath);
 
-  if (avatarCloudPath) {
+  if (!avatarCloudPath) {
     throw new apiError(409, "avatar must required");
   }
 
-  const user = await User.Create({
+  const user = await User.create({
     fullName,
     avatar: avatarCloudPath.url,
-    coverImage: coverImageCloudPath.url,
+    coverImage: coverImageCloudPath?.url || "",
     email,
     userName: userName.toLowerCase(),
     password,
   });
 
-  const createdUSer = User.findById(user._id).select("-password -refreshToken");
+  const createdUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
 
-  if (!createdUSer) {
-    throw new apiError(500, "something went wrong in registration ");
+  if (!createdUser) {
+    throw new apiError(500, "something went wrong in registration "); //remember this one thing that when ever we make any function using database it must be await otherwise it give wrong response like i make created user first it giver wrong response a circular array but with await it give corrected response
   }
-
   return res
     .status(201)
-    .json(new apiResponse(200, createdUSer, "user register succesfully"));
+    .json(new apiResponse(200, createdUser, "user register succesfully"));
 });
 
 export { registerUser };
@@ -70,7 +79,7 @@ export { registerUser };
 // 3. check user already exist using email , username✅
 // 4. check files is comming correct avatar
 // 5. upload to cloudinary
-// 6 . check if response come from cloudinary
+// 6. check if response come from cloudinary
 // 7. create user object in db
 // 8. if create successfully snd response to user
 // 9. remove password and refresh token

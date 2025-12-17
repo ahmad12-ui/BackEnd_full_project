@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 
 const userSchema = Schema(
   {
-    username: {
+    userName: {
       type: String,
       required: true,
       unique: true,
@@ -19,7 +19,7 @@ const userSchema = Schema(
       lowercase: true,
       trim: true,
     },
-    fullname: {
+    fullName: {
       type: String,
       required: true,
       trim: true,
@@ -48,7 +48,8 @@ userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next(); // this refer to current document
   // without if condition there is issue in this statment which is that it encrypt everytime when change made in user model but we want on just password related
   this.password = await bcrypt.hash(this.password, 10);
-  next();
+  console.log("next", next);
+  // next();  // check if any error come related to thing
 });
 //we not use the arrow function here because it dont have this keyword means it is unknown to context && we make the function async because it take time to encrypt it
 
