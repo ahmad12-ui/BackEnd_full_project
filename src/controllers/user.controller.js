@@ -3,6 +3,21 @@ import { apiError } from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
 import { uploadFileOnCloudinary } from "../utils/cloudinary.js";
 import { apiResponse } from "../utils/apiresponse.js";
+
+const generateAccessTokenAndRefreshToken = async ({ user_id }) => {
+  const user = await User.findById(user_id);
+  const accessToken = user.generateAccessToken();
+  const refreshToken = user.generateRefreshToken();
+
+  user.refreshToken = refreshToken;
+  await user.save({ validateBeforeSave: false });
+
+  return {
+    accessToken,
+    refreshToken,
+  };
+};
+
 const registerUser = asyncHandler(async (req, res) => {
   // res.status(200).json({
   //   message: "ok",
@@ -25,6 +40,7 @@ const registerUser = asyncHandler(async (req, res) => {
   if (existedUSer) {
     throw new apiError(409, "user already exist");
   }
+  console.log("files path ", req.files);
 
   //the [0] with avatar is must
   const avatarLocalPath = req.files?.avatar[0]?.path;
@@ -71,7 +87,80 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new apiResponse(200, createdUser, "user register succesfully"));
 });
 
-export { registerUser };
+const loginUser = asyncHandler(async (req, res) => {
+  const { email, password, userName } = req.body;
+
+  if ([userName, email, password].some((field) => field.trim() === "")) {
+    throw new apiError(400, "all field must require");
+  }
+  const user = await User.findOne({ $or: [{ email }, { password }] });
+  // console.log("userExist", user);
+
+  if (!user) {
+    throw new apiError(404, "incorrect userName or email");
+  }
+
+  const dbResponse = await user.ispassword(password);
+  if (!dbResponse) {
+    throw new apiError(404, "incorrect password");
+  }
+
+  const { accessToken, refreshToken } =
+    await generateAccessTokenAndRefreshToken({
+      user_id: user._id,
+    });
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+  console.log("logged in user ", loggedInUser);
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  return res
+    .status(200)
+    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken, options)
+    .json(
+      new apiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        },
+        "user logged in success fully "
+      )
+    );
+});
+
+const logOut = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        refreshToken: null,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  res
+    .status(200)
+    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", options)
+    .json(new apiResponse(200, {}, "User logged out"));
+});
+export { registerUser, loginUser, logOut };
 
 //step for user registeration
 // 1. get info from front end which is fetch using post or comes in req.body ✅

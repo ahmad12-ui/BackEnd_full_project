@@ -45,7 +45,7 @@ const userSchema = Schema(
 );
 
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next(); // this refer to current document
+  if (!this.isModified("password")) return false; // this refer to current document
   // without if condition there is issue in this statment which is that it encrypt everytime when change made in user model but we want on just password related
   this.password = await bcrypt.hash(this.password, 10);
   console.log("next", next);
