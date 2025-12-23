@@ -213,7 +213,107 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, logOut, refreshAccessToken };
+const changeCurrentUserPassword = asyncHandler(async (req, res) => {
+  console.log("req body", req.body);
+  const { oldPassword, newPassword } = req.body;
+
+  const user = await User.findById(req.user._id);
+
+  const validateOldPassword = await user.ispassword(oldPassword);
+
+  if (!validateOldPassword) {
+    throw new apiError(401, "wrong old password");
+  }
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, {}, "password changed successfully"));
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select(
+    "-password -refreshToken"
+  );
+  return res
+    .status(200)
+    .json(new apiResponse(200, user, "current user fetched successfully"));
+});
+
+const updateDetails = asyncHandler(async (req, res) => {
+  const { newFullName, newEmail } = req.body;
+
+  if (!newFullName && !newEmail) {
+    throw new apiError(400, "At least one field is required");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        email: newEmail,
+        fullName: newFullName,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, user, "Details updated successfully"));
+});
+
+const updateFiles = asyncHandler(async (req, res) => {
+  const { avatar, coverImage } = req.files;
+
+  if (!avatar && !coverImage) {
+    throw new apiError(400, "atleat one field must required");
+  }
+  let avatarLocalPath;
+  if (avatar) {
+    avatarLocalPath = avatar[0].path;
+  }
+  let coverImageLocalPath;
+  if (coverImage) {
+    coverImageLocalPath = coverImage[0].path;
+  }
+  let avatarCloudPath;
+  if (avatarLocalPath !== undefined && avatarLocalPath !== null) {
+    avatarCloudPath = await uploadFileOnCloudinary(avatarLocalPath);
+  }
+  let coverImageCloudPath;
+  if (coverImageLocalPath !== undefined && coverImageLocalPath !== null) {
+    coverImageCloudPath = await uploadFileOnCloudinary(coverImageLocalPath);
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        avatar: avatarCloudPath?.url,
+        coverImage: coverImageCloudPath?.url,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, user, "Files updated successfully"));
+});
+
+export {
+  registerUser,
+  loginUser,
+  logOut,
+  refreshAccessToken,
+  changeCurrentUserPassword,
+  getCurrentUser,
+  updateDetails,
+  updateFiles,
+};
 
 //step for user registeration
 // 1. get info from front end which is fetch using post or comes in req.body ✅
