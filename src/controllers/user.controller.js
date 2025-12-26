@@ -243,6 +243,8 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 });
 
 const updateDetails = asyncHandler(async (req, res) => {
+  console.log("req body ", req.body);
+
   const { newFullName, newEmail } = req.body;
 
   if (!newFullName && !newEmail) {
@@ -268,6 +270,10 @@ const updateDetails = asyncHandler(async (req, res) => {
 const updateFiles = asyncHandler(async (req, res) => {
   const { avatar, coverImage } = req.files;
 
+  console.log("req user is ", req.user);
+  const avatarPreviousPath = req.user.avatar;
+  const coverImagePreviousPath = req.user.coverImage;
+
   if (!avatar && !coverImage) {
     throw new apiError(400, "atleat one field must required");
   }
@@ -288,6 +294,9 @@ const updateFiles = asyncHandler(async (req, res) => {
     coverImageCloudPath = await uploadFileOnCloudinary(coverImageLocalPath);
   }
 
+  // if (!avatarCloudPath || !coverImageCloudPath) {
+  //   throw new apiError(400, "Failed to upload files");
+  // }
   const user = await User.findByIdAndUpdate(
     req.user._id,
     {
@@ -298,10 +307,132 @@ const updateFiles = asyncHandler(async (req, res) => {
     },
     { new: true }
   ).select("-password -refreshToken");
-
+  // add function for delete previous files
   return res
     .status(200)
     .json(new apiResponse(200, user, "Files updated successfully"));
+});
+
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  const { userName } = req.params;
+
+  if (!userName?.trim()) {
+    throw new apiError(400, "username is undefined");
+  }
+  const channel = await User.aggregate([
+    {
+      $match: {
+        userName: userName?.toLowerCase(),
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      },
+    },
+    {
+      $addField: {
+        subscribersCount: { $size: "$subscribers" },
+        SubscribedToCount: { $size: "$subscribedTo" },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        userName: 1,
+        fullName: 1,
+        avatar: 1,
+        coverImage: 1,
+        subscribersCount: 1,
+        SubscribedToCount: 1,
+        isSubscribed: 1,
+        email: 1,
+      },
+    },
+  ]);
+
+  console.log("channel from get Profile method is  ", channel);
+  if (!channel?.length) {
+    throw new apiError(404, "channel does not exist");
+  }
+  return res
+    .status(200)
+    .json(new apiResponse(200, channel[0], "channel fetched successfully"));
+});
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.types.objectId(req.user._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullName: 1,
+                    userName: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addField: {
+              owner: {
+                $first: "$owner",
+              },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+  if (!user?.length) {
+    throw new apiError(401, "user not exist ");
+  }
+  console.log("this is user from watch history method", user);
+
+  return res
+    .status(200)
+    .json(
+      new apiResponse(
+        200,
+        user[0].watchHistory,
+        "watch history fetched successfully"
+      )
+    );
 });
 
 export {
@@ -313,6 +444,8 @@ export {
   getCurrentUser,
   updateDetails,
   updateFiles,
+  getUserChannelProfile,
+  getWatchHistory,
 };
 
 //step for user registeration
