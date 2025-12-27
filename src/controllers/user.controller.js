@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadFileOnCloudinary } from "../utils/cloudinary.js";
 import { apiResponse } from "../utils/apiresponse.js";
 import jwt from "jsonwebtoken";
+import { removeFileFromCloudinary } from "../utils/removeFileFromCloundinary.js";
 
 const generateAccessTokenAndRefreshToken = async ({ user_id }) => {
   const user = await User.findById(user_id);
@@ -267,50 +268,111 @@ const updateDetails = asyncHandler(async (req, res) => {
     .json(new apiResponse(200, user, "Details updated successfully"));
 });
 
-const updateFiles = asyncHandler(async (req, res) => {
-  const { avatar, coverImage } = req.files;
+// const updateFiles = asyncHandler(async (req, res) => {
 
-  console.log("req user is ", req.user);
-  const avatarPreviousPath = req.user.avatar;
-  const coverImagePreviousPath = req.user.coverImage;
+//   const { avatar, coverImage } = req.files;
 
-  if (!avatar && !coverImage) {
-    throw new apiError(400, "atleat one field must required");
-  }
-  let avatarLocalPath;
-  if (avatar) {
-    avatarLocalPath = avatar[0].path;
-  }
-  let coverImageLocalPath;
-  if (coverImage) {
-    coverImageLocalPath = coverImage[0].path;
-  }
-  let avatarCloudPath;
-  if (avatarLocalPath !== undefined && avatarLocalPath !== null) {
-    avatarCloudPath = await uploadFileOnCloudinary(avatarLocalPath);
-  }
-  let coverImageCloudPath;
-  if (coverImageLocalPath !== undefined && coverImageLocalPath !== null) {
-    coverImageCloudPath = await uploadFileOnCloudinary(coverImageLocalPath);
-  }
+//   console.log("req user is ", req.user);
+//   const avatarPreviousPath = req.user.avatar;
+//   const coverImagePreviousPath = req.user.coverImage;
 
-  // if (!avatarCloudPath || !coverImageCloudPath) {
-  //   throw new apiError(400, "Failed to upload files");
-  // }
+//   if (!avatar && !coverImage) {
+//     throw new apiError(400, "atleat one field must required");
+//   }
+//   let avatarLocalPath;
+//   if (avatar) {
+//     avatarLocalPath = avatar[0].path;
+//   }
+//   let coverImageLocalPath;
+//   if (coverImage) {
+//     coverImageLocalPath = coverImage[0].path;
+//   }
+//   let avatarCloudPath;
+//   if (avatarLocalPath !== undefined && avatarLocalPath !== null) {
+//     avatarCloudPath = await uploadFileOnCloudinary(avatarLocalPath);
+//   }
+//   let coverImageCloudPath;
+//   if (coverImageLocalPath !== undefined && coverImageLocalPath !== null) {
+//     coverImageCloudPath = await uploadFileOnCloudinary(coverImageLocalPath);
+//   }
+
+//   // if (!avatarCloudPath || !coverImageCloudPath) {
+//   //   throw new apiError(400, "Failed to upload files");
+//   // }
+//   const user = await User.findByIdAndUpdate(
+//     req.user._id,
+//     {
+//       $set: {
+//         avatar: avatarCloudPath?.url,
+//         coverImage: coverImageCloudPath?.url,
+//       },
+//     },
+//     { new: true }
+//   ).select("-password -refreshToken");
+//   // add function for delete previous files
+//   if (avatarCloudPath) {
+//     removeFileFromCloudinary(avatarPreviousPath);
+//   }
+//   if (coverImageCloudPath) {
+//     removeFileFromCloudinary(coverImagePreviousPath);
+//   }
+//   return res
+//     .status(200)
+//     .json(new apiResponse(200, user, "Files updated successfully"));
+// });
+
+const updateAvatar = asyncHandler(async (req, res) => {
+  const avatar = req.file;
+  const prevAvatar = req.user.avatar;
+  console.log(avatar);
+
+  if (!avatar) {
+    throw new apiError(400, "avatar must required");
+  }
+  const response = await uploadFileOnCloudinary(avatar.path);
+
   const user = await User.findByIdAndUpdate(
     req.user._id,
     {
       $set: {
-        avatar: avatarCloudPath?.url,
-        coverImage: coverImageCloudPath?.url,
+        avatar: response?.url,
       },
     },
     { new: true }
   ).select("-password -refreshToken");
-  // add function for delete previous files
+
+  if (response) {
+    await removeFileFromCloudinary(prevAvatar);
+  }
   return res
     .status(200)
-    .json(new apiResponse(200, user, "Files updated successfully"));
+    .json(new apiResponse(200, user, "avatar updated successfully "));
+});
+const updateCoverImage = asyncHandler(async (req, res) => {
+  const coverImage = req.file;
+  const prevCoverImage = req.user.coverImage;
+
+  if (!coverImage) {
+    throw new apiError(400, "coverImage must required");
+  }
+  const response = await uploadFileOnCloudinary(coverImage.path);
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        coverImage: response?.url,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  if (response) {
+    await removeFileFromCloudinary(prevCoverImage);
+  }
+  return res
+    .status(200)
+    .json(new apiResponse(200, user, "coverImage updated successfully "));
 });
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
@@ -443,9 +505,11 @@ export {
   changeCurrentUserPassword,
   getCurrentUser,
   updateDetails,
-  updateFiles,
+  // updateFiles,
   getUserChannelProfile,
   getWatchHistory,
+  updateAvatar,
+  updateCoverImage,
 };
 
 //step for user registeration
