@@ -115,4 +115,16 @@ const updateVideoFile = asyncHandler(async (req, res) => {
     .json(new apiResponse(200, updatedVideo, "video updated success full"));
 });
 
-export { uploadVideo, deleteVideo, updateVideoFile };
+const getVideoById = asyncHandler(async (req, res) => {
+  const { video_id } = req.params;
+
+  const selectVideo = await Video.findById(video_id).select("-isPublished");
+
+  if (!selectVideo) {
+    throw new apiError(400, "Video ID must required to get this");
+  }
+  return res
+    .status(200)
+    .json(new apiResponse(200, selectVideo, "video fetched success fully"));
+});
+export { uploadVideo, deleteVideo, updateVideoFile, getVideoById };
