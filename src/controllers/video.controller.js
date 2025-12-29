@@ -63,118 +63,56 @@ const deleteVideo = asyncHandler(async (req, res) => {
     .status(200)
     .json(new apiResponse(200, response, "video delete successfully "));
 });
-const upadteVideo = asyncHandler(async (req, res) => {
-  const { video_id } = req.params;
-  console.log("video _ id", video_id);
-  const prev_Video = await Video.findById(video_id);
 
-  if (!prev_Video) {
+const updateVideoFile = asyncHandler(async (req, res) => {
+  const { video_id } = req.params;
+  const current_video = await Video.findById(video_id);
+  console.log("video id ", video_id);
+  console.log("current_video", current_video);
+  if (!current_video) {
     throw new apiError(400, "video not exist ");
   }
-
-  const prevPath = prev_Video?.videoFile;
-
-  const localPath = req.file?.path;
-
-  const cloudinaryPath = await uploadFileOnCloudinary(localPath);
-
-  if (!cloudinaryPath) {
-    throw new apiError(500, "issue in uploading file on cloudinary");
-  }
-  const updatedVideo = await Video.findByIdAndUpdate(
-    prev_Video?._id,
-    {
-      $set: {
-        videoFile: cloudinaryPath.url,
-      },
-    },
-    {
-      new: true,
-    }
-  );
-  await removeFileFromCloudinary(prevPath);
-
-  return res
-    .status(200)
-    .json(
-      new apiResponse(200, updatedVideo, "video file update success fully ")
-    );
-});
-const updateTitleAndDescription = asyncHandler(async (req, res) => {
-  const { video_id } = req.params;
-  const prev_Video = await Video.findById(video_id);
-
-  if (!prev_Video) {
-    throw new apiError(400, "video not exist ");
-  }
-
   const { title, description } = req.body;
+
+  const { videoFile, thumbnail } = req.files;
+  console.log("req files ", req.files);
+  console.log(videoFile[0].path);
+  let videolocalPath;
+  if (videoFile) {
+    videolocalPath = videoFile[0].path;
+  }
+  let thumbnailLocalPath;
+  if (thumbnail) {
+    thumbnailLocalPath = thumbnail[0].path;
+  }
+  var videoFileCloudinary;
+  if (videolocalPath) {
+    videoFileCloudinary = await uploadFileOnCloudinary(videolocalPath);
+  }
+  var thumbnailCloudinary;
+  if (thumbnailLocalPath) {
+    thumbnailCloudinary = await uploadFileOnCloudinary(thumbnailCloudinary);
+  }
   const updatedVideo = await Video.findByIdAndUpdate(
-    prev_Video?.id,
+    current_video?._id,
     {
       $set: {
         title: title,
         description: description,
+        videoFile: videoFileCloudinary?.url,
+        duration: videoFileCloudinary?.duration,
+        thumbnail: thumbnailCloudinary?.url,
       },
     },
     { new: true }
   );
 
-  if (!upadteVideo) {
-    throw new apiError(500, "error in updation title & description");
+  if (!updatedVideo) {
+    throw new apiError(500, "issue in updation the video");
   }
-
   return res
     .status(200)
-    .json(
-      new apiResponse(
-        200,
-        updatedVideo,
-        "update title & description success fully "
-      )
-    );
-});
-const updateThumbnail = asyncHandler(async (req, res) => {
-  const { video_id } = req.params;
-  const prev_Video = await Video.findById(video_id);
-
-  if (!prev_Video) {
-    throw new apiError(400, "video not exist ");
-  }
-
-  const prevPath = prev_Video?.thumbnail;
-
-  const localPath = req.file?.path;
-
-  const cloudinaryPath = await uploadFileOnCloudinary(localPath);
-
-  if (!cloudinaryPath) {
-    throw new apiError(500, "issue in uploading file on cloudinary");
-  }
-  const updatedVideo = await Video.findByIdAndUpdate(
-    prev_Video?._id,
-    {
-      $set: {
-        thumbnail: cloudinaryPath.url,
-      },
-    },
-    {
-      new: true,
-    }
-  );
-  await removeFileFromCloudinary(prevPath);
-
-  return res
-    .status(200)
-    .json(
-      new apiResponse(200, updatedVideo, "video file update success fully ")
-    );
+    .json(new apiResponse(200, updatedVideo, "video updated success full"));
 });
 
-export {
-  uploadVideo,
-  deleteVideo,
-  upadteVideo,
-  updateTitleAndDescription,
-  updateThumbnail,
-};
+export { uploadVideo, deleteVideo, updateVideoFile };
