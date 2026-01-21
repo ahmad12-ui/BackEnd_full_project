@@ -5,6 +5,7 @@ import { uploadFileOnCloudinary } from "../utils/cloudinary.js";
 import { apiResponse } from "../utils/apiresponse.js";
 import jwt from "jsonwebtoken";
 import { removeFileFromCloudinary } from "../utils/removeFileFromCloundinary.js";
+import mongoose from "mongoose";
 
 const generateAccessTokenAndRefreshToken = async ({ user_id }) => {
   const user = await User.findById(user_id);
@@ -95,7 +96,9 @@ const loginUser = asyncHandler(async (req, res) => {
   if ([userName, email, password].some((field) => field.trim() === "")) {
     throw new apiError(400, "all field must require");
   }
-  const user = await User.findOne({ $or: [{ email }, { password }] });
+  const user = await User.findOne({
+    $or: [{ email }, { password }, { userName }],
+  });
   // console.log("userExist", user);
 
   if (!user) {
@@ -141,8 +144,9 @@ const logOut = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: {
-        refreshToken: null,
+      $unset: {
+        //why it different from set : null  or why set : undefined is not work
+        refreshToken: 1,
       },
     },
     {
@@ -404,7 +408,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
       },
     },
     {
-      $addField: {
+      $addFields: {
         subscribersCount: { $size: "$subscribers" },
         SubscribedToCount: { $size: "$subscribedTo" },
         isSubscribed: {
@@ -443,7 +447,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
-        _id: new mongoose.types.objectId(req.user._id),
+        _id: new mongoose.Types.ObjectId(req.user._id),
       },
     },
     {
@@ -471,7 +475,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
             },
           },
           {
-            $addField: {
+            $addFields: {
               owner: {
                 $first: "$owner",
               },
@@ -511,15 +515,3 @@ export {
   updateAvatar,
   updateCoverImage,
 };
-
-//step for user registeration
-// 1. get info from front end which is fetch using post or comes in req.body ✅
-// 2. validate the data if required field is empty show the error✅
-// 3. check user already exist using email , username✅
-// 4. check files is comming correct avatar
-// 5. upload to cloudinary
-// 6. check if response come from cloudinary
-// 7. create user object in db
-// 8. if create successfully snd response to user
-// 9. remove password and refresh token
-// 10. return res

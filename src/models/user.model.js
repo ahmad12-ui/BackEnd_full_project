@@ -55,15 +55,15 @@ userSchema.pre("save", async function (next) {
 
 userSchema.methods.ispassword = async function (password) {
   // methods add function to schema "custom method"
-  return await bcrypt.compare(password, this.password); // returm boolean
+  return await bcrypt.compare(password, this.password); // return boolean
 };
 userSchema.methods.generateAccessToken = async function () {
   return jwt.sign(
     {
       _id: this._id,
       email: this.email,
-      username: this.username,
-      fullname: this.fullname,
+      userName: this.userName,
+      fullName: this.fullName,
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
@@ -76,8 +76,8 @@ userSchema.methods.generateRefreshToken = function () {
     {
       _id: this._id,
       email: this.email,
-      username: this.username,
-      fullname: this.fullname,
+      userName: this.userName,
+      fullName: this.fullName,
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
