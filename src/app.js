@@ -27,9 +27,13 @@ app.use(cookieParser()); // cookie is small piece of data that store on browser 
 //router import
 import userRouter from "./routes/users.routes.js";
 import videoRouter from "./routes/videos.routes.js";
+import subscriptionRouter from "./routes/subscriptions.routes.js";
 app.use("/api/v1/users", userRouter);
 
 // video router
 app.use("/api/v1/videos", videoRouter);
+
+// subscription router
+app.use("/api/v1/subscriptions", subscriptionRouter);
 
 export default app;
