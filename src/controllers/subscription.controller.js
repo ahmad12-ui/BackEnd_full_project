@@ -4,6 +4,7 @@ import { Subscription } from "../models/subscription.model.js";
 import { apiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { apiResponse } from "../utils/apiresponse.js";
+
 const toggleSubscription = asyncHandler(async (req, res) => {
   const { channelId } = req.params;
   if (!channelId) {
@@ -44,4 +45,49 @@ const toggleSubscription = asyncHandler(async (req, res) => {
   }
 });
 
-export { toggleSubscription };
+const getUserChannelSubscribers = asyncHandler(async (req, res) => {
+  const { channelId } = req.params;
+  if (!channelId) {
+    throw new apiError(400, "channel Id must be present");
+  }
+  if (!mongoose.Types.ObjectId.isValid(channelId)) {
+    throw new apiError(400, "Invalid channel Id");
+  }
+
+  const Subscribers = await Subscription.find({
+    channel: new mongoose.Types.ObjectId(channelId),
+  });
+
+  return res
+    .status(200)
+    .json(
+      new apiResponse(200, Subscribers, "subscirbers fetched successfully ")
+    );
+});
+
+const getSubscribedChannel = asyncHandler(async (req, res) => {
+  const { subscriberId } = req.params;
+
+  if (!subscriberId) {
+    throw new apiError(400, "subscriber Id must be given");
+  }
+  if (!mongoose.Types.ObjectId.isValid(subscriberId)) {
+    throw new apiError(400, "Invalid channel Id");
+  }
+
+  const subscribedChannel = await Subscription.find({
+    subscriber: new mongoose.Types.ObjectId(subscriberId),
+  });
+
+  return res
+    .status(200)
+    .json(
+      new apiResponse(
+        200,
+        subscribedChannel,
+        "subscribed channel fetched successfully "
+      )
+    );
+});
+
+export { toggleSubscription, getUserChannelSubscribers, getSubscribedChannel };
