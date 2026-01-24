@@ -59,4 +59,141 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     .status(200)
     .json(new apiResponse(200, updatedPlaylist, "video added successfully "));
 });
-export { createPlaylist, addVideoToPlaylist };
+
+const getUserPlaylists = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    throw new apiError(400, "user Id must require ");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new apiError(400, "user Id must be  valid ");
+  }
+
+  const allPlaylists = await Playlist.find({
+    owner: new mongoose.Types.ObjectId(userId),
+  })
+    .skip(skip)
+    .sort({ createdAt: -1 });
+
+  if (!allPlaylists) {
+    throw new apiError(500, "failed to find  playlists");
+  }
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, allPlaylists, "playLists fetched successfuly"));
+});
+
+const getPLaylistById = asyncHandler(async (req, res) => {
+  const { playlistId } = req.params;
+
+  if (!playlistId) {
+    throw new apiError(400, "playlistId must require ");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+    throw new apiError(400, "playlistId  must be  valid ");
+  }
+
+  const playlist = await Playlist.findById(playlistId);
+  if (!playlist) {
+    throw new apiError(500, "something went wrong while  finding the playlist");
+  }
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, playlist, "playList fetched successfuly"));
+});
+
+const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
+  const { playlistId, videoId } = req.params;
+
+  if (!(playlistId && videoId)) {
+    throw new apiError(400, "playlist or video must  be required");
+  }
+  if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+    throw new apiError("400", "Invalid playlist Id");
+  }
+  if (!mongoose.Types.ObjectId.isValid(videoId)) {
+    throw new apiError("400", "Invalid video Id");
+  }
+
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
+    playlistId,
+    { $pull: { videos: new mongoose.Types.ObjectId(videoId) } },
+    { new: true }
+  );
+  if (!updatedPlaylist) {
+    throw new apiError(500, "Internal server Error while removing ");
+  }
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, updatedPlaylist, "video remove successfully"));
+});
+
+const deletePlaylistById = asyncHandler(async (req, res) => {
+  const { playlistId } = req.params;
+  if (!playlistId) {
+    throw new apiError(400, "playlistId must require ");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+    throw new apiError(400, "playlistId  must be  valid ");
+  }
+
+  const removedList = Playlist.findByIDAndDelete(playlistId);
+
+  if (!removeList) {
+    throw new apiError(500, "Internal server error while removing");
+  }
+  return res
+    .status(200)
+    .json(new apiResponse(200, removedList, "playlist remove successfully"));
+});
+
+const updatePlaylist = asyncHandler(async (req, res) => {
+  const { title, description } = req.body;
+  const { playlistId } = req.params;
+  if ([title, description, playlistId].some((field) => field.trim() == "")) {
+    throw new apiError(400, "playlistId must require ");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+    throw new apiError(400, "playlistId  must be  valid ");
+  }
+
+  const updatedPlaylist = findByIdAndUpdate(
+    playlistId,
+    {
+      $set: {
+        title: title,
+        description: description,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!updatedPlaylist) {
+    throw new apiError(
+      500,
+      "Internal server error while updating the playlist"
+    );
+  }
+  return res
+    .status(200)
+    .json(new apiResponse(200, updatePlaylist, "playlist update successfully"));
+});
+export {
+  createPlaylist,
+  addVideoToPlaylist,
+  getUserPlaylists,
+  getPLaylistById,
+  removeVideoFromPlaylist,
+  deletePlaylistById,
+  updatePlaylist,
+};
