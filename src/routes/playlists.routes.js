@@ -11,14 +11,19 @@ import {
 } from "../controllers/playlist.controller";
 
 const router = Router();
-
+router.use(verifyJWT);
 // not tested yet test once completed all route
-router.route("/create-playlist").post(verifyJWT, createPlaylist);
-router.route("/add-video").patch(verifyJWT, addVideoToPlaylist);
-router.route("/get-user-playlists").get(verifyJWT, getUserPlaylists);
-router.route("/get-playlist").get(verifyJWT, getPLaylistById);
-router.route("/remove-video").get(verifyJWT, removeVideoFromPlaylist);
-router.route("/delete-playlist").delete(verifyJWT, deletePlaylistById);
-router.route("/update-playlist").patch(verifyJWT, updatePlaylist);
+router.route("/create-playlist").post(createPlaylist);
+
+router.route("/add/:videoId/:playlistId").patch(addVideoToPlaylist);
+router.route("/remove/:videoId/:playlistId").patch(removeVideoFromPlaylist);
+
+router.route("/user/:userId").get(getUserPlaylists);
+
+router
+  .route("/:playlistId")
+  .get(getPLaylistById)
+  .patch(updatePlaylist)
+  .delete(deletePlaylistById);
 
 export default router;
