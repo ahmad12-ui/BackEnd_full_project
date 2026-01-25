@@ -25,7 +25,7 @@ router.route("/upload-video").post(
   ]),
   uploadVideo
 );
-router.route("/delete-video/:video_id").get(verifyJWT, deleteVideo);
+router.route("/delete-video/:video_id").delete(verifyJWT, deleteVideo);
 
 router.route("/update-video-file/:video_id").patch(
   verifyJWT,
@@ -43,7 +43,9 @@ router.route("/update-video-file/:video_id").patch(
 );
 
 router.route("/get-video/:video_id").get(verifyJWT, getVideoById);
-router.route("/toggle-ispublished/:video_id").get(verifyJWT, toggleIsPublished);
+router
+  .route("/toggle-ispublished/:video_id")
+  .patch(verifyJWT, toggleIsPublished);
 
 router.route("/get-all-videos").get(verifyJWT, getAllVideos);
 export default router;

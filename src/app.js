@@ -30,6 +30,7 @@ import videoRouter from "./routes/videos.routes.js";
 import subscriptionRouter from "./routes/subscriptions.routes.js";
 import playlistRouter from "./routes/playlists.routes.js";
 import likeRouter from "./routes/likes.routes.js";
+import tweetRouter from "./routes/tweet.routes.js";
 app.use("/api/v1/users", userRouter);
 
 // video router
@@ -43,4 +44,7 @@ app.use("/api/v1/playlists", playlistRouter);
 
 // likes router
 app.use("/api/v1/likes", likeRouter);
+
+// tweet router
+app.use("/api/v1/tweets", tweetRouter);
 export default app;
