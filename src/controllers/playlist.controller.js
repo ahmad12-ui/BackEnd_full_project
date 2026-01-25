@@ -146,7 +146,7 @@ const deletePlaylistById = asyncHandler(async (req, res) => {
 
   const removedList = Playlist.findByIDAndDelete(playlistId);
 
-  if (!removeList) {
+  if (!removedList) {
     throw new apiError(500, "Internal server error while removing");
   }
   return res
