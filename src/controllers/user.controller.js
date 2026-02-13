@@ -43,7 +43,7 @@ const registerUser = asyncHandler(async (req, res) => {
   if (existedUSer) {
     throw new apiError(409, "user already exist");
   }
-  console.log("files path ", req.files);
+  // console.log("files path ", req.files);
 
   //the [0] with avatar is must
   const avatarLocalPath = req.files?.avatar[0]?.path;
@@ -328,7 +328,7 @@ const updateDetails = asyncHandler(async (req, res) => {
 const updateAvatar = asyncHandler(async (req, res) => {
   const avatar = req.file;
   const prevAvatar = req.user.avatar;
-  console.log(avatar);
+  // console.log(avatar);
 
   if (!avatar) {
     throw new apiError(400, "avatar must required");

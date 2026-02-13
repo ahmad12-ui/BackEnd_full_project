@@ -68,16 +68,13 @@ const deleteVideo = asyncHandler(async (req, res) => {
 const updateVideoFile = asyncHandler(async (req, res) => {
   const { video_id } = req.params;
   const current_video = await Video.findById(video_id);
-  console.log("video id ", video_id);
-  console.log("current_video", current_video);
+
   if (!current_video) {
     throw new apiError(400, "video not exist ");
   }
   const { title, description } = req.body;
 
   const { videoFile, thumbnail } = req.files;
-  console.log("req files ", req.files);
-  console.log(videoFile[0].path);
   let videolocalPath;
   if (videoFile) {
     videolocalPath = videoFile[0].path;

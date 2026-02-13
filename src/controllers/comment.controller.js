@@ -21,7 +21,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
     throw new apiError(404, "video not existing ");
   }
 
-  const findAll = Comment.find({
+  const findAll = await Comment.find({
     video: new mongoose.Types.ObjectId(videoId),
   })
     .sort({ createdAt: -1 })
@@ -38,7 +38,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
 const addComment = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  const text = req.body.content?.trim();
+  const text = req.body.text?.trim();
 
   if (!text) throw new apiError(400, "content is required");
   if (text.length > 280) throw new apiError(400, "tweet too long");
@@ -57,9 +57,7 @@ const addComment = asyncHandler(async (req, res) => {
     owner: req.user._id,
     content: text,
     video: videoId,
-  })
-    .populate("owner", "name avatar")
-    .sort({ createdAt: -1 });
+  });
 
   // if (!createComment) {
   //   throw new apiError(400, "failed to write comment");
@@ -71,7 +69,7 @@ const addComment = asyncHandler(async (req, res) => {
 
 const updateComment = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
-  const text = req.body.content?.trim();
+  const { text } = req.body;
 
   if (!text) throw new apiError(400, "content is required");
   if (text.length > 280) throw new apiError(400, "tweet too long");
@@ -87,9 +85,8 @@ const updateComment = asyncHandler(async (req, res) => {
   }
 
   const updated = await Comment.findByIdAndUpdate(
-    commentId,
-    { owner: req.user._id },
-    { content: text },
+    { _id: commentId, owner: req.user._id },
+    { $set: { content: text } },
     { new: true }
   );
   if (!updated) {

@@ -6,7 +6,7 @@ import { apiResponse } from "../utils/apiresponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const createTweet = asyncHandler(async (req, res) => {
-  const text = req.body.content?.trim();
+  const text = req.body.text?.trim();
 
   if (!text) throw new apiError(400, "content is required");
   if (text.length > 280) throw new apiError(400, "tweet too long");
@@ -37,7 +37,6 @@ const getUserTweets = asyncHandler(async (req, res) => {
   const parsedLimit = Number(limit);
   const getAllTweets = await Tweet.find({
     owner: new mongoose.Types.ObjectId(userId),
-    isDeleted: false,
   })
     .skip((page - 1) * limit)
     .limit(parsedLimit)
@@ -51,7 +50,7 @@ const getUserTweets = asyncHandler(async (req, res) => {
 const updateTweet = asyncHandler(async (req, res) => {
   const { tweetId } = req.params;
 
-  const text = req.body.content?.trim();
+  const text = req.body.text?.trim();
 
   if (!text) throw new apiError(400, "content is required");
   if (text.length > 280) throw new apiError(400, "tweet too long");
@@ -63,9 +62,8 @@ const updateTweet = asyncHandler(async (req, res) => {
   }
 
   const updatedTweet = await Tweet.findByIdAndUpdate(
-    tweetId,
-    { owner: req.user._id },
-    { content: text },
+    { _id: tweetId, owner: req.user._id },
+    { $set: { content: text } },
     { new: true }
   );
 
@@ -74,7 +72,7 @@ const updateTweet = asyncHandler(async (req, res) => {
   }
   return res
     .status(200)
-    .json(new apiResponse(200, updateTweet, "tweet updated successfully"));
+    .json(new apiResponse(200, updatedTweet, "tweet updated successfully"));
 });
 
 const deleteTweet = asyncHandler(async (req, res) => {

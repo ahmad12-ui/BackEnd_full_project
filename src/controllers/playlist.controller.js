@@ -3,6 +3,7 @@ import { apiError } from "../utils/apiError.js";
 import { apiResponse } from "../utils/apiresponse.js";
 import { Playlist } from "../models/playlist.model.js";
 import { Video } from "../models/video.model.js";
+import mongoose from "mongoose";
 const createPlaylist = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
 
@@ -50,7 +51,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     { _id: playlistId, owner: req.user._id },
     { $addToSet: { video: videoId } },
     { new: true }
-  ).populate("videos");
+  ).populate("video");
 
   if (!updatedPlaylist) {
     throw new apiError(500, "failed to add video in playlist");
@@ -73,9 +74,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 
   const allPlaylists = await Playlist.find({
     owner: new mongoose.Types.ObjectId(userId),
-  })
-    .skip(skip)
-    .sort({ createdAt: -1 });
+  }).sort({ createdAt: -1 });
 
   if (!allPlaylists) {
     throw new apiError(500, "failed to find  playlists");
@@ -122,7 +121,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
 
   const updatedPlaylist = await Playlist.findByIdAndUpdate(
     playlistId,
-    { $pull: { videos: new mongoose.Types.ObjectId(videoId) } },
+    { $pull: { video: new mongoose.Types.ObjectId(videoId) } },
     { new: true }
   );
   if (!updatedPlaylist) {
@@ -144,7 +143,7 @@ const deletePlaylistById = asyncHandler(async (req, res) => {
     throw new apiError(400, "playlistId  must be  valid ");
   }
 
-  const removedList = Playlist.findByIDAndDelete(playlistId);
+  const removedList = await Playlist.findByIdAndDelete(playlistId);
 
   if (!removedList) {
     throw new apiError(500, "Internal server error while removing");
@@ -155,9 +154,9 @@ const deletePlaylistById = asyncHandler(async (req, res) => {
 });
 
 const updatePlaylist = asyncHandler(async (req, res) => {
-  const { title, description } = req.body;
+  const { name, description } = req.body;
   const { playlistId } = req.params;
-  if ([title, description, playlistId].some((field) => field.trim() == "")) {
+  if (!playlistId) {
     throw new apiError(400, "playlistId must require ");
   }
 
@@ -165,18 +164,18 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     throw new apiError(400, "playlistId  must be  valid ");
   }
 
-  const updatedPlaylist = findByIdAndUpdate(
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
     playlistId,
     {
       $set: {
-        title: title,
+        name: name,
         description: description,
       },
     },
     {
       new: true,
     }
-  );
+  ).select("-description");
 
   if (!updatedPlaylist) {
     throw new apiError(
@@ -186,7 +185,9 @@ const updatePlaylist = asyncHandler(async (req, res) => {
   }
   return res
     .status(200)
-    .json(new apiResponse(200, updatePlaylist, "playlist update successfully"));
+    .json(
+      new apiResponse(200, updatedPlaylist, "playlist update successfully")
+    );
 });
 export {
   createPlaylist,
